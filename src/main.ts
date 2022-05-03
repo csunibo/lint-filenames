@@ -16,8 +16,9 @@ async function run(): Promise<void> {
     const pattern = new RegExp(
       core.getInput('pattern', { required: true }) || DEFAULT_PATTERN
     );
+    const recursive = core.getInput('recursive');
 
-    const output = await validateFilenames(path, pattern);
+    const output = await validateFilenames(path, pattern, recursive);
 
     core.setOutput('total-files-analyzed', output.totalFilesAnalyzed);
 

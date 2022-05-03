@@ -1,34 +1,39 @@
 import fs from 'fs';
+import path from 'path';
 
 export async function validateFilenames(
-  path: string,
-  pattern: RegExp
+  dirpath: string,
+  pattern: RegExp,
+  recursive?: boolean
 ): Promise<{
   totalFilesAnalyzed: number;
   failedFiles: string[];
 }> {
-  console.log(`ℹ️  Path:    \t\t'${path}'`);
+  console.log(`ℹ️  Path:    \t\t'${dirpath}'`);
   console.log(`ℹ️  Pattern: \t\t${pattern}`);
-  const opendir = fs.promises.opendir;
-  const failedFiles = [];
+  console.log(`ℹ️  Recursive: \t\t${recursive}`);
+  const failedFiles: string[] = [];
   let totalFilesAnalyzed = 0;
 
-  try {
-    const dir = await opendir(path);
-
-    console.log('Verification starting...');
-    for await (const dirent of dir) {
-      if (dirent.isDirectory()) {
-        continue;
-      }
-      totalFilesAnalyzed++;
-      if (pattern.test(dirent.name)) {
-        console.log(`  ✔️  ${dirent.name}`);
+  function check(dirPath: string, recursive?: boolean) {
+    fs.readdirSync(dirPath).forEach(relativeChild => {
+      const absoluteChild = path.join(dirPath, relativeChild);
+      if (fs.statSync(absoluteChild).isDirectory()) {
+        if (recursive) check(absoluteChild, true);
       } else {
-        console.log(`  ❌  ${dirent.name}`);
-        failedFiles.push(dirent.name);
+        ++totalFilesAnalyzed;
+        if (pattern.test(relativeChild)) console.log(`  ✔️  ${absoluteChild}`);
+        else {
+          console.log(`  ❌  ${absoluteChild}`);
+          failedFiles.push(absoluteChild);
+        }
       }
-    }
+    });
+  }
+
+  try {
+    console.log('Verification starting...');
+    check(dirpath, recursive);
     console.log('Verification finished.');
     console.log(`ℹ️  Files analyzed: \t${totalFilesAnalyzed}`);
   } catch (error) {

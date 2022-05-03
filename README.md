@@ -26,6 +26,10 @@ are followed in a given folder in your repository.
   to replace with `\\`.
 - Example: `/^\d+\.jpg$/` should be `/^\\d+\\.jpg$/`.
 
+### `recursive`
+
+Whether the directory should be inspected recursively or not.
+
 _For more examples, see [`./__tests__/validate-filenames.test.ts`](./__tests__/validate-filenames.test.ts)._
 
 ## Outputs

@@ -14,7 +14,8 @@ inputs:
     default: '/.+/'
   recursive:
     description: 'Whether the directory should be inspected recursively or not.'
-    default: false
+    required: false
+    default: 'false'
 outputs:
   total-files-analyzed:
     description: 'The number of files analyzed.'

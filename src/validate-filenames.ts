@@ -4,7 +4,7 @@ import path from 'path';
 export async function validateFilenames(
   dirpath: string,
   pattern: RegExp,
-  recursive?: boolean
+  recursive: string
 ): Promise<{
   totalFilesAnalyzed: number;
   failedFiles: string[];
@@ -33,7 +33,7 @@ export async function validateFilenames(
 
   try {
     console.log('Verification starting...');
-    check(dirpath, recursive);
+    check(dirpath, recursive === 'true');
     console.log('Verification finished.');
     console.log(`ℹ️  Files analyzed: \t${totalFilesAnalyzed}`);
   } catch (error) {

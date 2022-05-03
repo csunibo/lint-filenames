@@ -33,7 +33,7 @@ describe('Name of the group', () => {
 
     const expected = { totalFilesAnalyzed: 5, failedFiles: [] };
 
-    await expect(validateFilenames(path, pattern)).resolves.toEqual(expected);
+    await expect(validateFilenames(path, pattern, 'false')).resolves.toEqual(expected);
   });
 
   it('02 - Passes for `name.ext` files', async () => {
@@ -43,7 +43,7 @@ describe('Name of the group', () => {
 
     const expected = { totalFilesAnalyzed: 1, failedFiles: [] };
 
-    await expect(validateFilenames(path, pattern)).resolves.toEqual(expected);
+    await expect(validateFilenames(path, pattern, 'false')).resolves.toEqual(expected);
   });
 
   it('03 - Passes for `.dotfiles`', async () => {
@@ -53,7 +53,7 @@ describe('Name of the group', () => {
 
     const expected = { totalFilesAnalyzed: 1, failedFiles: [] };
 
-    await expect(validateFilenames(path, pattern)).resolves.toEqual(expected);
+    await expect(validateFilenames(path, pattern, 'false')).resolves.toEqual(expected);
   });
 
   it('04 - Passes for no `.dotfiles`', async () => {
@@ -63,7 +63,7 @@ describe('Name of the group', () => {
 
     const expected = { totalFilesAnalyzed: 5, failedFiles: [] };
 
-    await expect(validateFilenames(path, pattern)).resolves.toEqual(expected);
+    await expect(validateFilenames(path, pattern, 'false')).resolves.toEqual(expected);
   });
 
   it('05 - Passes for files with `a` in the name', async () => {
@@ -73,7 +73,7 @@ describe('Name of the group', () => {
 
     const expected = { totalFilesAnalyzed: 5, failedFiles: [] };
 
-    await expect(validateFilenames(path, pattern)).resolves.toEqual(expected);
+    await expect(validateFilenames(path, pattern, 'false')).resolves.toEqual(expected);
   });
 
   it('06 - Passes for json files `*.json`', async () => {
@@ -83,6 +83,6 @@ describe('Name of the group', () => {
 
     const expected = { totalFilesAnalyzed: 5, failedFiles: [] };
 
-    await expect(validateFilenames(path, pattern)).resolves.toEqual(expected);
+    await expect(validateFilenames(path, pattern, 'false')).resolves.toEqual(expected);
   });
 });

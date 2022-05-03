@@ -8,7 +8,11 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -48,7 +52,8 @@ function run() {
             console.log('====================');
             const path = core.getInput('path', { required: true }) || DEFAULT_PATH;
             const pattern = new RegExp(core.getInput('pattern', { required: true }) || DEFAULT_PATTERN);
-            const output = yield (0, validate_filenames_1.validateFilenames)(path, pattern);
+            const recursive = core.getInput('recursive');
+            const output = yield (0, validate_filenames_1.validateFilenames)(path, pattern, recursive);
             core.setOutput('total-files-analyzed', output.totalFilesAnalyzed);
             // Get the JSON webhook payload for the event that triggered the workflow
             const payload = JSON.stringify(github.context.payload, undefined, 2);
@@ -83,53 +88,41 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __asyncValues = (this && this.__asyncValues) || function (o) {
-    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var m = o[Symbol.asyncIterator], i;
-    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.validateFilenames = void 0;
 const fs_1 = __importDefault(__nccwpck_require__(7147));
-function validateFilenames(path, pattern) {
-    var e_1, _a;
+const path_1 = __importDefault(__nccwpck_require__(1017));
+function validateFilenames(dirpath, pattern, recursive) {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log(`ℹ️  Path:    \t\t'${path}'`);
+        console.log(`ℹ️  Path:    \t\t'${dirpath}'`);
         console.log(`ℹ️  Pattern: \t\t${pattern}`);
-        const opendir = fs_1.default.promises.opendir;
+        console.log(`ℹ️  Recursive: \t\t${recursive}`);
         const failedFiles = [];
         let totalFilesAnalyzed = 0;
-        try {
-            const dir = yield opendir(path);
-            console.log('Verification starting...');
-            try {
-                for (var dir_1 = __asyncValues(dir), dir_1_1; dir_1_1 = yield dir_1.next(), !dir_1_1.done;) {
-                    const dirent = dir_1_1.value;
-                    if (dirent.isDirectory()) {
-                        continue;
-                    }
-                    totalFilesAnalyzed++;
-                    if (pattern.test(dirent.name)) {
-                        console.log(`  ✔️  ${dirent.name}`);
-                    }
+        function check(dirPath, recursive) {
+            fs_1.default.readdirSync(dirPath).forEach(relativeChild => {
+                const absoluteChild = path_1.default.join(dirPath, relativeChild);
+                if (fs_1.default.statSync(absoluteChild).isDirectory()) {
+                    if (recursive)
+                        check(absoluteChild, true);
+                }
+                else {
+                    ++totalFilesAnalyzed;
+                    if (pattern.test(relativeChild))
+                        console.log(`  ✔️  ${absoluteChild}`);
                     else {
-                        console.log(`  ❌  ${dirent.name}`);
-                        failedFiles.push(dirent.name);
+                        console.log(`  ❌  ${absoluteChild}`);
+                        failedFiles.push(absoluteChild);
                     }
                 }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (dir_1_1 && !dir_1_1.done && (_a = dir_1.return)) yield _a.call(dir_1);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
+            });
+        }
+        try {
+            console.log('Verification starting...');
+            check(dirpath, recursive === 'true');
             console.log('Verification finished.');
             console.log(`ℹ️  Files analyzed: \t${totalFilesAnalyzed}`);
         }
@@ -5600,9 +5593,17 @@ AbortError.prototype = Object.create(Error.prototype);
 AbortError.prototype.constructor = AbortError;
 AbortError.prototype.name = 'AbortError';
 
+const URL$1 = Url.URL || whatwgUrl.URL;
+
 // fix an issue where "PassThrough", "resolve" aren't a named export for node <10
 const PassThrough$1 = Stream.PassThrough;
-const resolve_url = Url.resolve;
+
+const isDomainOrSubdomain = function isDomainOrSubdomain(destination, original) {
+	const orig = new URL$1(original).hostname;
+	const dest = new URL$1(destination).hostname;
+
+	return orig === dest || orig[orig.length - dest.length - 1] === '.' && orig.endsWith(dest);
+};
 
 /**
  * Fetch function
@@ -5690,7 +5691,19 @@ function fetch(url, opts) {
 				const location = headers.get('Location');
 
 				// HTTP fetch step 5.3
-				const locationURL = location === null ? null : resolve_url(request.url, location);
+				let locationURL = null;
+				try {
+					locationURL = location === null ? null : new URL$1(location, request.url).toString();
+				} catch (err) {
+					// error here can only be invalid URL in Location: header
+					// do not throw when options.redirect == manual
+					// let the user extract the errorneous redirect URL
+					if (request.redirect !== 'manual') {
+						reject(new FetchError(`uri requested responds with an invalid redirect URL: ${location}`, 'invalid-redirect'));
+						finalize();
+						return;
+					}
+				}
 
 				// HTTP fetch step 5.5
 				switch (request.redirect) {
@@ -5737,6 +5750,12 @@ function fetch(url, opts) {
 							timeout: request.timeout,
 							size: request.size
 						};
+
+						if (!isDomainOrSubdomain(request.url, locationURL)) {
+							for (const name of ['authorization', 'www-authenticate', 'cookie', 'cookie2']) {
+								requestOpts.headers.delete(name);
+							}
+						}
 
 						// HTTP-redirect fetch step 9
 						if (res.statusCode !== 303 && request.body && getTotalBytes(request) === null) {

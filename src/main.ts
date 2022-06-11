@@ -34,6 +34,7 @@ async function run(): Promise<void> {
     if (output.failedFiles.length) {
       // When checks fail print an helpful message pointing to any broken
       // filenames on regex101
+      console.log(`The event name is: ${github.context.eventName}`)
       if (github.context.eventName == 'pull-request') {
         const octokit = github.getOctokit(core.getInput('token'))
         const body = await commentBody(rawPattern, output.failedFiles)

@@ -40,15 +40,8 @@ export async function validateFilenames(
     throw new Error('Execution failed, see log above. ❌');
   }
 
-  if (failedFiles.length) {
-    throw new Error(
-      `${failedFiles.length} files not matching the pattern were found, see log above. ❌`
-    );
-  } else {
-    console.log('✅ Success: All files match the given pattern!');
-    return {
-      totalFilesAnalyzed,
-      failedFiles,
-    };
-  }
+  return {
+    totalFilesAnalyzed,
+    failedFiles,
+  };
 }

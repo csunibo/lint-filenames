@@ -22,9 +22,9 @@ export async function validateFilenames(
         if (recursive) check(absoluteChild, true);
       } else {
         ++totalFilesAnalyzed;
-        if (pattern.test(relativeChild)) console.log(`  ✔️  ${absoluteChild}`);
+        if (pattern.test(relativeChild)) console.log(`\t OK ${absoluteChild}`);
         else {
-          console.log(`  ❌  ${absoluteChild}`);
+          console.log(`\t !! ${absoluteChild}`);
           failedFiles.push(absoluteChild);
         }
       }

@@ -32,18 +32,18 @@ async function run(): Promise<void> {
 
     output = await validateFilenames(path, pattern, recursive);
     if (output.failedFiles.length) {
-      core.setFailed(`${output.failedFiles.length} files not matching the pattern were found, see log above. ❌`);
       // When checks fail print an helpful message pointing to any broken
       // filenames on regex101
       if (github.context.eventName == 'pull-request') {
         const octokit = github.getOctokit(core.getInput('token'))
         const body = await commentBody(rawPattern, output.failedFiles)
         core.debug(`PR message body:\n"""${body}"""`);
-        octokit.rest.issues.createComment({
+        await octokit.rest.issues.createComment({
           ...github.context.issue,
           body
         });
       }
+      core.setFailed(`${output.failedFiles.length} files not matching the pattern were found, see log above. ❌`);
       return;
     }
 

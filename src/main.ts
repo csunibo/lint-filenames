@@ -23,7 +23,6 @@ Then please correct the naming to move the PR forward.
 `;
 
 async function run(): Promise<void> {
-  let output;
   try {
     console.log('====================');
     console.log('|  Lint Filenames  |');
@@ -35,7 +34,7 @@ async function run(): Promise<void> {
     const pattern = new RegExp(rawPattern);
     const recursive = core.getInput('recursive');
 
-    output = await validateFilenames(path, pattern, recursive === 'true');
+    const output = await validateFilenames(path, pattern, recursive === 'true');
     if (output.failedFiles.length !== 0) {
       // When checks fail print an helpful message pointing to any broken
       // filenames on regex101
@@ -65,8 +64,12 @@ async function run(): Promise<void> {
     // Get the JSON webhook payload for the event that triggered the workflow
     const payload = JSON.stringify(github.context.payload, undefined, 2);
     core.debug(`The event payload: ${payload}`);
-  } catch (error) {
-    core.setFailed('An unknown error occurred. Check the logs for details');
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      core.setFailed(error.message);
+    } else {
+      core.setFailed('Unknown error');
+    }
   }
 }
 

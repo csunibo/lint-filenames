@@ -56,7 +56,6 @@ Then please correct the naming to move the PR forward.
 });
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        let output;
         try {
             console.log('====================');
             console.log('|  Lint Filenames  |');
@@ -65,7 +64,7 @@ function run() {
             const rawPattern = core.getInput('pattern', { required: true }) || DEFAULT_PATTERN;
             const pattern = new RegExp(rawPattern);
             const recursive = core.getInput('recursive');
-            output = yield (0, validate_filenames_1.validateFilenames)(path, pattern, recursive === 'true');
+            const output = yield (0, validate_filenames_1.validateFilenames)(path, pattern, recursive === 'true');
             if (output.failedFiles.length !== 0) {
                 // When checks fail print an helpful message pointing to any broken
                 // filenames on regex101
@@ -84,14 +83,19 @@ function run() {
                 core.setFailed(`${output.failedFiles.length} files not matching the pattern were found, see log above. ❌`);
                 return;
             }
-            console.log('✅ Success: All files match the given pattern!');
+            console.log('✅\tSuccessSuccess: All files match the given pattern!');
             core.setOutput('total-files-analyzed', output.totalFilesAnalyzed);
             // Get the JSON webhook payload for the event that triggered the workflow
             const payload = JSON.stringify(github.context.payload, undefined, 2);
             core.debug(`The event payload: ${payload}`);
         }
         catch (error) {
-            core.setFailed('An unknown error occurred. Check the logs for details');
+            if (error instanceof Error) {
+                core.setFailed(error.message);
+            }
+            else {
+                core.setFailed('Unknown error');
+            }
         }
     });
 }

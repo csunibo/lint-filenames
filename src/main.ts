@@ -4,9 +4,6 @@ import * as github from '@actions/github';
 import { validateFilenames } from './validate-filenames';
 import { regexURL } from './regex101';
 
-const DEFAULT_PATTERN = '^.+\\..+$';
-const DEFAULT_PATH = '.';
-
 const commentBody = async (
   regex: string,
   failedFiles: string[]
@@ -24,25 +21,26 @@ Then please correct the naming to move the PR forward.
 
 async function run(): Promise<void> {
   try {
-    console.log('====================');
-    console.log('|  Lint Filenames  |');
-    console.log('====================');
-
-    const path = core.getInput('path', { required: true }) || DEFAULT_PATH;
-    const rawPattern =
-      core.getInput('pattern', { required: true }) || DEFAULT_PATTERN;
+    const path = core.getInput('path', { required: true });
+    const rawPattern = core.getInput('pattern', { required: true });
     const pattern = new RegExp(rawPattern);
-    const recursive = core.getInput('recursive');
+    const recursive = core.getInput('recursive') === 'true';
 
-    const output = await validateFilenames(path, pattern, recursive === 'true');
+    const output = await core.group(
+      'Validating filenames',
+      async () => await validateFilenames(path, pattern, recursive)
+    );
+
     if (output.failedFiles.length !== 0) {
       // When checks fail print an helpful message pointing to any broken
       // filenames on regex101
-      console.log(`The event name is: ${github.context.eventName}`);
 
       if (github.context.eventName === 'pull-request') {
+        core.debug('PR event detected, commenting on PR');
+
         const octokit = github.getOctokit(core.getInput('token'));
         const body = await commentBody(rawPattern, output.failedFiles);
+
         core.debug(`PR message body:\n"""${body}"""`);
         await octokit.rest.issues.createComment({
           issue_number: github.context.issue.number,
@@ -53,12 +51,12 @@ async function run(): Promise<void> {
       }
 
       core.setFailed(
-        `${output.failedFiles.length} files not matching the pattern were found, see log above. ❌`
+        `❌ ${output.failedFiles.length} files didn't match the given pattern`
       );
       return;
     }
 
-    console.log('✅\tSuccessSuccess: All files match the given pattern!');
+    core.info('✅ Success: All files match the given pattern!');
     core.setOutput('total-files-analyzed', output.totalFilesAnalyzed);
 
     // Get the JSON webhook payload for the event that triggered the workflow

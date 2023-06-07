@@ -43,8 +43,6 @@ const core = __importStar(__nccwpck_require__(7733));
 const github = __importStar(__nccwpck_require__(3695));
 const validate_filenames_1 = __nccwpck_require__(3273);
 const regex101_1 = __nccwpck_require__(6768);
-const DEFAULT_PATTERN = '^.+\\..+$';
-const DEFAULT_PATH = '.';
 const commentBody = (regex, failedFiles) => __awaiter(void 0, void 0, void 0, function* () {
     return `Some files changed in this PR didn't match the required filename format:
 \`${regex}\`
@@ -57,19 +55,16 @@ Then please correct the naming to move the PR forward.
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log('====================');
-            console.log('|  Lint Filenames  |');
-            console.log('====================');
-            const path = core.getInput('path', { required: true }) || DEFAULT_PATH;
-            const rawPattern = core.getInput('pattern', { required: true }) || DEFAULT_PATTERN;
+            const path = core.getInput('path', { required: true });
+            const rawPattern = core.getInput('pattern', { required: true });
             const pattern = new RegExp(rawPattern);
-            const recursive = core.getInput('recursive');
-            const output = yield (0, validate_filenames_1.validateFilenames)(path, pattern, recursive === 'true');
+            const recursive = core.getInput('recursive') === 'true';
+            const output = yield core.group('Validating filenames', () => __awaiter(this, void 0, void 0, function* () { return yield (0, validate_filenames_1.validateFilenames)(path, pattern, recursive); }));
             if (output.failedFiles.length !== 0) {
                 // When checks fail print an helpful message pointing to any broken
                 // filenames on regex101
-                console.log(`The event name is: ${github.context.eventName}`);
                 if (github.context.eventName === 'pull-request') {
+                    core.debug('PR event detected, commenting on PR');
                     const octokit = github.getOctokit(core.getInput('token'));
                     const body = yield commentBody(rawPattern, output.failedFiles);
                     core.debug(`PR message body:\n"""${body}"""`);
@@ -80,10 +75,10 @@ function run() {
                         body,
                     });
                 }
-                core.setFailed(`${output.failedFiles.length} files not matching the pattern were found, see log above. ❌`);
+                core.setFailed(`❌ ${output.failedFiles.length} files didn't match the given pattern`);
                 return;
             }
-            console.log('✅\tSuccessSuccess: All files match the given pattern!');
+            core.info('✅ Success: All files match the given pattern!');
             core.setOutput('total-files-analyzed', output.totalFilesAnalyzed);
             // Get the JSON webhook payload for the event that triggered the workflow
             const payload = JSON.stringify(github.context.payload, undefined, 2);
@@ -160,40 +155,28 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.validateFilenames = void 0;
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const path_1 = __importDefault(__nccwpck_require__(1017));
-function validateFilenames(dirpath, pattern, recursive) {
+function validateFilenames(dirPath, pattern, recursive) {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log(`ℹ️  Path:    \t\t'${dirpath}'`);
-        console.log(`ℹ️  Pattern: \t\t${pattern}`);
-        console.log(`ℹ️  Recursive: \t\t${recursive}`);
         const failedFiles = [];
         let totalFilesAnalyzed = 0;
-        function check(dirPath) {
-            const relativeChilds = fs_1.default.readdirSync(dirPath);
-            for (const relativeChild of relativeChilds) {
-                const absoluteChild = path_1.default.join(dirPath, relativeChild);
-                if (fs_1.default.statSync(absoluteChild).isDirectory()) {
-                    if (recursive)
-                        check(absoluteChild);
+        const relativeChilds = fs_1.default.readdirSync(dirPath);
+        for (const relativeChild of relativeChilds) {
+            const absoluteChild = path_1.default.join(dirPath, relativeChild);
+            if (!fs_1.default.statSync(absoluteChild).isDirectory()) {
+                totalFilesAnalyzed++;
+                if (pattern.test(relativeChild)) {
+                    console.log(`OK ${absoluteChild}`);
                 }
                 else {
-                    ++totalFilesAnalyzed;
-                    if (pattern.test(relativeChild))
-                        console.log(`\t OK ${absoluteChild}`);
-                    else {
-                        console.log(`\t !! ${absoluteChild}`);
-                        failedFiles.push(absoluteChild);
-                    }
+                    console.log(`KO ${absoluteChild}`);
+                    failedFiles.push(absoluteChild);
                 }
             }
-        }
-        try {
-            console.log('Verification starting...');
-            check(dirpath);
-            console.log('Verification finished.');
-            console.log(`ℹ️  Files analyzed: \t${totalFilesAnalyzed}`);
-        }
-        catch (error) {
-            throw new Error('Execution failed, see log above. ❌');
+            else if (recursive) {
+                const recursion = yield validateFilenames(absoluteChild, pattern, recursive);
+                totalFilesAnalyzed += recursion.totalFilesAnalyzed;
+                failedFiles.push(...recursion.failedFiles);
+            }
         }
         return {
             totalFilesAnalyzed,

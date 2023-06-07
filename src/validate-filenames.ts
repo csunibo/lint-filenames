@@ -4,7 +4,7 @@ import path from 'path';
 export async function validateFilenames(
   dirpath: string,
   pattern: RegExp,
-  recursive: string
+  recursive: boolean
 ): Promise<{
   totalFilesAnalyzed: number;
   failedFiles: string[];
@@ -15,11 +15,13 @@ export async function validateFilenames(
   const failedFiles: string[] = [];
   let totalFilesAnalyzed = 0;
 
-  function check(dirPath: string, recursive?: boolean) {
-    fs.readdirSync(dirPath).forEach(relativeChild => {
+  function check(dirPath: string): void {
+    const relativeChilds = fs.readdirSync(dirPath);
+
+    for (const relativeChild of relativeChilds) {
       const absoluteChild = path.join(dirPath, relativeChild);
       if (fs.statSync(absoluteChild).isDirectory()) {
-        if (recursive) check(absoluteChild, true);
+        if (recursive) check(absoluteChild);
       } else {
         ++totalFilesAnalyzed;
         if (pattern.test(relativeChild)) console.log(`\t OK ${absoluteChild}`);
@@ -28,12 +30,12 @@ export async function validateFilenames(
           failedFiles.push(absoluteChild);
         }
       }
-    });
+    }
   }
 
   try {
     console.log('Verification starting...');
-    check(dirpath, recursive === 'true');
+    check(dirpath);
     console.log('Verification finished.');
     console.log(`ℹ️  Files analyzed: \t${totalFilesAnalyzed}`);
   } catch (error) {

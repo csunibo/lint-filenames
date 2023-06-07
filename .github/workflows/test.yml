@@ -28,7 +28,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm run build
+      - run: pnpm run all
 
   tests: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest

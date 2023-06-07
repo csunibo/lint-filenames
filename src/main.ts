@@ -59,7 +59,7 @@ async function run(): Promise<void> {
       return;
     }
 
-    console.log('✅ Success: All files match the given pattern!');
+    console.log('✅\tSuccessSuccess: All files match the given pattern!');
     core.setOutput('total-files-analyzed', output.totalFilesAnalyzed);
 
     // Get the JSON webhook payload for the event that triggered the workflow

@@ -75,7 +75,12 @@ function run() {
                         body,
                     });
                 }
-                core.setFailed(`❌ ${output.failedFiles.length} files didn't match the given pattern`);
+                for (const failedFile of output.failedFiles) {
+                    core.error(`${failedFile} doesn't match the given pattern`, {
+                        file: failedFile,
+                    });
+                }
+                core.setFailed(`${output.failedFiles.length} files didn't match the given pattern`);
                 return;
             }
             core.info('✅ Success: All files match the given pattern!');

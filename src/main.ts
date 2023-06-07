@@ -50,8 +50,14 @@ async function run(): Promise<void> {
         });
       }
 
+      for (const failedFile of output.failedFiles) {
+        core.error(`${failedFile} doesn't match the given pattern`, {
+          file: failedFile,
+        });
+      }
+
       core.setFailed(
-        `❌ ${output.failedFiles.length} files didn't match the given pattern`
+        `${output.failedFiles.length} files didn't match the given pattern`
       );
       return;
     }
